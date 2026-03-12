@@ -73,3 +73,10 @@ uint64_t partition_get_size_by_name(const char* part_name) {
     return ((uint64_t (*)(const char*))(CONFIG_PARTITION_GET_SIZE_BY_NAME_ADDRESS | 1))(part_name);
 #endif
 }
+
+#ifdef CONFIG_AB_SUPPORT
+char *get_suffix(void)
+{
+    return ((char* (*)(void))(CONFIG_GET_SUFFIX_ADDRESS | 1))();
+}
+#endif

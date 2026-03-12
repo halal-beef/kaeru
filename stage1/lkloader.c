@@ -10,14 +10,49 @@
 #include <stage1/memory.h>
 
 ssize_t load_kaeru_partition(void* buffer, size_t buffer_size) {
+#ifndef CONFIG_AB_SUPPORT
     const char* part_name = CONFIG_BOOTLOADER_PARTITION_NAME;
+#else
+    char* part_name = malloc(sizeof(CONFIG_BOOTLOADER_PARTITION_NAME) + 2);
+    char* ab_suffix = get_suffix();
+
+    if (!part_name)
+    {
+        LOG("Failed to allocate memory for partition name!\n");
+        return -1;
+    }
+
+    if (!ab_suffix)
+    {
+        LOG("ab_suffix is null!\n");
+        free(part_name);
+        return -1;
+    }
+
+    // I am so sorry for what you're about to witness.
+    for (int i = 0; i < sizeof(CONFIG_BOOTLOADER_PARTITION_NAME) - 1; i++)
+        part_name[i] = CONFIG_BOOTLOADER_PARTITION_NAME[i];
+
+    for (int i = 0; i < 2; i++)
+        part_name[sizeof(CONFIG_BOOTLOADER_PARTITION_NAME) - 1 + i] = ab_suffix[i];
+
+    part_name[sizeof(CONFIG_BOOTLOADER_PARTITION_NAME) + 1] = '\0';
+#endif
 
     if (!buffer || buffer_size == 0)
+    {
+#ifdef CONFIG_AB_SUPPORT
+      free(part_name);
+#endif
         return -1;
+    }
 
     uint64_t lk_size = partition_get_size_by_name(part_name);
     if (lk_size == 0) {
         LOG("Failed to get partition size for '%s'\n", part_name);
+#ifdef CONFIG_AB_SUPPORT
+        free(part_name);
+#endif
         return -1;
     }
 
@@ -50,7 +85,12 @@ ssize_t load_kaeru_partition(void* buffer, size_t buffer_size) {
 
         uint8_t* hdr = malloc(hsz);
         if (!hdr)
+        {
+#ifdef CONFIG_AB_SUPPORT
+            free(part_name);
+#endif
             return -1;
+        }
 
         read = partition_read(part_name, pos, hdr, hsz);
         if (read != hsz) {
@@ -80,7 +120,12 @@ ssize_t load_kaeru_partition(void* buffer, size_t buffer_size) {
 
             ssize_t kaeru_read = partition_read(part_name, data_start, buffer, (size_t)data_size);
             if (kaeru_read <= 0)
+            {
+#ifdef CONFIG_AB_SUPPORT
+                free(part_name);
+#endif
                 return -1;
+            }
 
             return (ssize_t)data_size;
         }
@@ -100,6 +145,9 @@ ssize_t load_kaeru_partition(void* buffer, size_t buffer_size) {
         pos = next;
     }
 
+#ifdef CONFIG_AB_SUPPORT
+    free(part_name);
+#endif
     LOG("kaeru partition not found\n");
     return -1;
 }

@@ -23,3 +23,7 @@ size_t dprintf(const char* format, ...);
 void platform_init(void);
 ssize_t partition_read(const char* part_name, off_t offset, uint8_t* data, size_t size);
 uint64_t partition_get_size_by_name(const char* part_name);
+
+#ifdef CONFIG_AB_SUPPORT
+    char *get_suffix(void);
+#endif
