@@ -8,12 +8,13 @@
 #define VOLUME_UP 17
 
 static void handle_recovery_boot(void) {
+    show_bootmode(get_bootmode());
     if (get_bootmode() != BOOTMODE_RECOVERY || !is_spoofing_enabled())
         return;
 
     printf("Recovery boot detected, modifying cmdline for unlocked state.\n");
-    /*cmdline_replace((char *)0x480B68C8, "androidboot.verifiedbootstate=",
-                    "green", "orange");*/
+    cmdline_replace((char *)0x480B68C8, "androidboot.verifiedbootstate=",
+                    "green", "orange");
 }
 
 static void spoof_lock_state(void) {
@@ -78,7 +79,7 @@ static void spoof_lock_state(void) {
     // keeps showing "unlocked" even when we want it to say "locked".
     // This patch forces the cmdline to always use the "locked"
     // string instead of checking the actual device state.
-    addr = SEARCH_PATTERN(LK_START, LK_END, 0xE92D, 0x4FF0, 0xB0A9, 0xF101);
+    addr = SEARCH_PATTERN(LK_START, LK_END, 0xE92D, 0x4FF0, 0x4691, 0xF102);
     if (addr) {
         printf("Found AVB cmdline function at 0x%08X\n", addr);
 
@@ -114,10 +115,10 @@ static void spoof_lock_state(void) {
     // and allows flashing. We also patch a few other cmdline params
     // (secureboot, device_state) as a precaution in case stock
     // recovery checks them as well.
-    addr = SEARCH_PATTERN(LK_START, LK_END, 0xF00B, 0xFB7F, 0xF000, 0xFECF);
+    addr = SEARCH_PATTERN(LK_START, LK_END, 0xF00E, 0xF984, 0xF001, 0xF94C);
     if (addr) {
         printf("Found cmdline_pre_process at 0x%08X\n", addr);
-        //PATCH_CALL(addr, (void *)handle_recovery_boot, TARGET_THUMB);
+        PATCH_CALL(addr, (void *)handle_recovery_boot, TARGET_THUMB);
     }
 }
 
